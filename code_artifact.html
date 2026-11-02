@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <!-- 設定網頁編碼為 UTF-8 -->
+    <meta charset="UTF-8">
+    <!-- 設定響應式視埠，確保在移動設備與桌面上都有合適的縮放 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 網頁標題 -->
+    <title>星空像素俄羅斯方塊 - Retro Pixel Tetris</title>
+    
+    <!-- 引入 Google Fonts 的 Press Start 2P 像素字型 -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS CSS 變數定義，統一管理像素復古配色 */
+        :root {
+            --bg-color: #13132e;         /* 調亮後的深藍紫/深靛青夜空底色 */
+            --panel-bg: rgba(20, 20, 45, 0.85); /* 半透明控制面板背景 */
+            --border-color: #5d5ad6;    /* 像素邊框主色（藍紫） */
+            --border-light: #8b88ff;    /* 邊框亮部 */
+            --border-dark: #32308e;     /* 邊框暗部 */
+            --text-color: #ffffff;      /* 主要文字顏色 */
+            --accent-yellow: #f8d800;   /* 高亮黃色 */
+            --accent-green: #00e676;    /* 高亮綠色 */
+            --accent-pink: #ff4081;     /* 高亮粉色 */
+        }
+
+        /* 重置全域邊距與基本設定 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none; /* 禁止文字被選取，提升遊戲體驗 */
+        }
+
+        /* 頁面整體結構設定 */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Press Start 2P', monospace, sans-serif; /* 使用像素字型 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* 隱藏溢出的滾動條 */
+            position: relative;
+        }
+
+        /* ---------------- 星空背景與小星動畫 ---------------- */
+        /* 背景星空容器 */
+        #starfield {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* 置於最底層 */
+            overflow: hidden;
+            pointer-events: none; /* 不干擾滑鼠點擊事件 */
+        }
+
+        /* ---------------- 背景像素星球樣式 ---------------- */
+        .planet {
+            position: absolute;
+            z-index: 1; /* 置於背景星星之上、遊戲主體之下 */
+            pointer-events: none;
+            opacity: 0.85;
+            image-rendering: pixelated;
+        }
+
+        /* 星球 1：粉紫雙色帶環星球 (左上方) */
+        .planet-1 {
+            top: 12%;
+            left: 10%;
+            width: 56px;
+            height: 56px;
+            background: radial-gradient(circle at 35% 35%, #e040fb 0%, #aa00ff 60%, #4a148c 100%);
+            border-radius: 50%;
+            box-shadow: inset -6px -6px 0px rgba(0, 0, 0, 0.4), 0 0 15px rgba(170, 0, 255, 0.3);
+            animation: floatPlanet1 6s infinite ease-in-out alternate;
+        }
+        /* 星球 1 的像素光環 */
+        .planet-1::after {
+            content: '';
+            position: absolute;
+            top: 40%;
+            left: -30%;
+            width: 160%;
+            height: 12px;
+            border: 4px solid #ff80ab;
+            border-radius: 50%;
+            transform: rotate(-25deg);
+            opacity: 0.7;
+        }
+
+        /* 星球 2：藍綠層次巨行星 (右上方) */
+        .planet-2 {
+            top: 18%;
+            right: 12%;
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #00e5ff 0%, #00e5ff 30%, #1de9b6 31%, #1de9b6 60%, #004d40 61%);
+            border-radius: 50%;
+            box-shadow: inset -8px -8px 0px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 229, 255, 0.25);
+            animation: floatPlanet2 8s infinite ease-in-out alternate;
+        }
+
+        /* 星球 3：黃橘暖色小行星 (右下方) */
+        .planet-3 {
+            bottom: 15%;
+            right: 18%;
+            width: 44px;
+            height: 44px;
+            background: radial-gradient(circle at 30% 30%, #ffd54f 0%, #ff9800 65%, #e65100 100%);
+            border-radius: 50%;
+            box-shadow: inset -5px -5px 0px rgba(0, 0, 0, 0.4);
+            animation: floatPlanet3 5s infinite ease-in-out alternate;
+        }
+        /* 星球 3 的表面像素坑紋細節 */
+        .planet-3::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 10px;
+            width: 8px;
+            height: 8px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 50%;
+            box-shadow: 12px 14px 0 -1px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 3顆星球的浮動動畫 Keyframes */
+        @keyframes floatPlanet1 {
+            0% { transform: translateY(0px) rotate(0deg); }
+            100% { transform: translateY(-16px) rotate(3deg); }
+        }
+        @keyframes floatPlanet2 {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-20px); }
+        }
+        @keyframes floatPlanet3 {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-12px); }
+        }
+
+        /* 單個像素星星的樣式 */
+        .star {
+            position: absolute;
+            background-color: #ffffff;
+            opacity: 0.8;
+            /* 定義小幅上下浮動動畫，使用 steps 達成像素視覺感 */
+            animation: floatUpDown 3s infinite ease-in-out alternate;
+        }
+<!-- ... existing code -->
+<body>
+
+    <!-- 星空動態背景容器 -->
+    <div id="starfield">
+        <!-- 像素背景星球（粉紫、藍綠、黃橘三色） -->
+        <div class="planet planet-1"></div>
+        <div class="planet planet-2"></div>
+        <div class="planet planet-3"></div>
+    </div>
+
+    <!-- 遊戲主要結構區域 -->
+    <div class="game-wrapper">
+<!-- ... existing code -->
