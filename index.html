@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <!-- 設定網頁編碼為 UTF-8 -->
+    <meta charset="UTF-8">
+    <!-- 設定響應式視埠，確保在移動設備與桌面上都有合適的縮放 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 網頁標題 -->
+    <title>星空像素俄羅斯方塊 - Retro Pixel Tetris</title>
+    
+    <!-- 引入 Google Fonts 的 Press Start 2P 像素字型 -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS 變數定義，統一管理像素復古配色 */
+        :root {
+            --bg-color: #181830;         /* 調亮後的深藍紫夜空底色 */
+            --panel-bg: rgba(24, 24, 52, 0.9); /* 半透明控制面板背景 */
+            --border-color: #5d5ad6;    /* 像素邊框主色 */
+            --border-light: #8b88ff;    /* 邊框亮部 */
+            --border-dark: #32308e;     /* 邊框暗部 */
+            --text-color: #ffffff;      /* 主要文字顏色 */
+            --accent-yellow: #f8d800;   /* 高亮黃色 */
+            --accent-green: #00e676;    /* 高亮綠色 */
+            --accent-pink: #ff4081;     /* 高亮粉色 */
+        }
+
+        /* 重置全域邊距與基本設定 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none; /* 禁止文字被選取，提升遊戲體驗 */
+        }
+
+        /* 頁面整體結構設定 */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Press Start 2P', monospace, sans-serif; /* 使用像素字型 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* 隱藏溢出的滾動條 */
+            position: relative;
+            padding: 10px;
+        }
+
+        /* ---------------- 星空背景與小星動畫 ---------------- */
+        /* 背景星空容器 */
+        #starfield {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* 置於最底層 */
+            overflow: hidden;
+            pointer-events: none; /* 不干擾點擊 */
+        }
+
+        /* ---------------- 背景像素星球樣式 ---------------- */
+        .planet {
+            position: absolute;
+            z-index: 1; /* 置於背景星星之上、遊戲主體之下 */
+            pointer-events: none;
+            opacity: 0.85;
+        }
+
+        /* 星球 1：粉紫雙色帶環星球 (左上方) */
+        .planet-1 {
+            top: 10%;
+            left: 8%;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle at 35% 35%, #e040fb 0%, #aa00ff 60%, #4a148c 100%);
+            border-radius: 50%;
+            box-shadow: inset -6px -6px 0px rgba(0, 0, 0, 0.4), 0 0 15px rgba(170, 0, 255, 0.3);
+            animation: floatPlanet1 6s infinite ease-in-out alternate;
+        }
+        /* 星球 1 的光環 */
+        .planet-1::after {
+            content: '';
+            position: absolute;
+            top: 40%;
+            left: -30%;
+            width: 160%;
+            height: 12px;
+            border: 4px solid #ff80ab;
+            border-radius: 50%;
+            transform: rotate(-25deg);
+            opacity: 0.7;
+        }
+
+        /* 星球 2：藍綠條紋巨行星 (右上方) */
+        .planet-2 {
+            top: 15%;
+            right: 10%;
+            width: 76px;
+            height: 76px;
+            background: linear-gradient(135deg, #00e5ff 0%, #00e5ff 30%, #1de9b6 31%, #1de9b6 60%, #004d40 61%);
+            border-radius: 50%;
+            box-shadow: inset -8px -8px 0px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 229, 255, 0.25);
+            animation: floatPlanet2 8s infinite ease-in-out alternate;
+        }
+
+        /* 星球 3：黃橘暖色小行星 (右下方) */
+        .planet-3 {
+            bottom: 12%;
+            right: 15%;
+            width: 48px;
+            height: 48px;
+            background: radial-gradient(circle at 30% 30%, #ffd54f 0%, #ff9800 65%, #e65100 100%);
+            border-radius: 50%;
+            box-shadow: inset -5px -5px 0px rgba(0, 0, 0, 0.4);
+            animation: floatPlanet3 5s infinite ease-in-out alternate;
+        }
+
+        /* 星球浮動動畫 Keyframes */
+        @keyframes floatPlanet1 {
+            0% { transform: translateY(0px) rotate(0deg); }
+            100% { transform: translateY(-16px) rotate(3deg); }
+        }
+        @keyframes floatPlanet2 {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-20px); }
+        }
+        @keyframes floatPlanet3 {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-12px); }
+        }
+
+        /* 單個像素星星的樣式 */
+        .star {
+            position: absolute;
+            background-color: #ffffff;
+            opacity: 0.8;
+            animation: floatUpDown 3s infinite ease-in-out alternate;
+        }
+
+        /* 小星浮動動畫 */
+        @keyframes floatUpDown {
+            0% { transform: translateY(0px); opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-8px); opacity: 0.5; }
+        }
+
+        /* ---------------- 遊戲外框與版面配置 ---------------- */
+        .game-wrapper {
+            position: relative;
+            z-index: 10; /* 置於背景上方 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* 遊戲標題像素風格 */
+        .game-title {
+            font-size: 20px;
+            color: var(--accent-yellow);
+            text-shadow: 3px 3px 0px #000, 0 0 10px rgba(248, 216, 0, 0.5);
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        /* 主遊戲容器（左邊遊戲盤，右邊資訊欄） */
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 16px;
+            background-color: var(--panel-bg);
+            padding: 16px;
+            border: 4px solid var(--border-color);
+            box-shadow: 
+                inset 4px 4px 0px var(--border-light),
+                inset -4px -4px 0px var(--border-dark),
+                0 0 20px rgba(0,0,0,0.8);
+            border-radius: 8px;
+        }
+
+        /* 像素風格邊框共用樣式 */
+        .pixel-box {
+            background-color: #0c0c1e;
+            border: 3px solid #333366;
+            box-shadow: 
+                inset 2px 2px 0px #555599,
+                inset -2px -2px 0px #111133;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        /* 俄羅斯方塊主畫布容器 */
+        .canvas-container {
+            position: relative;
+        }
+
+        #tetris {
+            display: block;
+            background-color: #050510;
+        }
+
+        /* 側邊欄（統計數據與預覽） */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 140px;
+        }
+
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-card {
+            padding: 8px;
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 9px;
+            color: #aaaaff;
+            margin-bottom: 6px;
+        }
+
+        .info-value {
+            font-size: 12px;
+            color: #ffffff;
+            word-break: break-all;
+        }
+
+        #next {
+            display: block;
+            margin: 0 auto;
+            background-color: #050510;
+        }
+
+        /* 像素復古按鈕 */
+        .btn {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            color: #ffffff;
+            background-color: #4a47a3;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            box-shadow: 
+                inset 2px 2px 0px #7a77e2,
+                inset -2px -2px 0px #242259,
+                3px 3px 0px #000;
+            border-radius: 4px;
+            transition: all 0.1s ease;
+        }
+
+        .btn:hover {
+            background-color: #5c58c7;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 
+                inset 1px 1px 0px #7a77e2,
+                inset -1px -1px 0px #242259,
+                1px 1px 0px #000;
+        }
+
+        /* 浮層覆蓋面板（遊戲結束/暫停） */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            z-index: 20;
+        }
+
+        .overlay-title {
+            font-size: 16px;
+            color: var(--accent-pink);
+            text-shadow: 2px 2px 0px #000;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* 手機端觸控按鈕列 */
+        .touch-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 100%;
+            max-width: 380px;
+            margin-top: 5px;
+        }
+
+        .touch-btn {
+            padding: 12px 5px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .touch-btn-wide {
+            grid-column: span 3;
+            background-color: #2e7d32;
+        }
+
+        /* 響應式微調 */
+        @media (max-width: 480px) {
+            .main-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .sidebar {
+                width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: space-around;
+            }
+            .info-card {
+                min-width: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 星空動態背景容器 -->
+    <div id="starfield">
+        <!-- 3 顆不同風格的背景像素星球 -->
+        <div class="planet planet-1"></div>
+        <div class="planet planet-2"></div>
+        <div class="planet planet-3"></div>
+    </div>
+
+    <!-- 遊戲主要頁面結構 -->
+    <div class="game-wrapper">
+        <h1 class="game-title">TETRIS</h1>
+
+        <div class="main-container">
+            <!-- 左側：主遊戲畫布 -->
+            <div class="canvas-container pixel-box">
+                <canvas id="tetris" width="240" height="400"></canvas>
+                
+                <!-- 遊戲結束/暫停時顯示的彈出浮層 -->
+                <div id="overlay" class="overlay hidden">
+                    <div id="overlay-text" class="overlay-title">GAME OVER</div>
+                    <button id="restart-btn" class="btn">RESTART</button>
+                </div>
+            </div>
+
+            <!-- 右側：資訊與預覽面板 -->
+            <div class="sidebar">
+                <div class="info-group">
+                    <!-- 下一個方塊預覽 -->
+                    <div class="info-card pixel-box">
+                        <div class="info-label">NEXT</div>
+                        <canvas id="next" width="80" height="80"></canvas>
+                    </div>
+
+                    <!-- 得分顯示 -->
+                    <div class="info-card pixel-box">
+                        <div class="info-label">SCORE</div>
+                        <div id="score" class="info-value">0</div>
+                    </div>
+
+                    <!-- 等級顯示 -->
+                    <div class="info-card pixel-box">
+                        <div class="info-label">LEVEL</div>
+                        <div id="level" class="info-value">1</div>
+                    </div>
+
+                    <!-- 消除行數顯示 -->
+                    <div class="info-card pixel-box">
+                        <div class="info-label">LINES</div>
+                        <div id="lines" class="info-value">0</div>
+                    </div>
+                </div>
+
+                <!-- 控制按鈕 -->
+                <button id="pause-btn" class="btn" style="margin-top: 10px;">PAUSE</button>
+            </div>
+        </div>
+
+        <!-- 手機/觸控螢幕的虛擬按鈕 -->
+        <div class="touch-controls">
+            <button id="btn-left" class="btn touch-btn">◄</button>
+            <button id="btn-rotate" class="btn touch-btn">↻</button>
+            <button id="btn-right" class="btn touch-btn">►</button>
+            <button id="btn-down" class="btn touch-btn">▼</button>
+            <button id="btn-drop" class="btn touch-btn touch-btn-wide">HARD DROP</button>
+        </div>
+    </div>
+
+    <script>
+        /* ----------------------------------------------------
+           1. 星空粒子背景生成 (Starfield Generator)
+        ---------------------------------------------------- */
+        function createStarfield() {
+            const starfield = document.getElementById('starfield');
+            const starCount = 80; // 產生 80 顆小星星
+
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                // 隨機尺寸 (2px - 4px 的像素方塊)
+                const size = Math.floor(Math.random() * 3) + 2;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                
+                // 隨機螢幕位置 (0% - 100%)
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                
+                // 隨機動畫延遲與時間，製造不規則晃動
+                star.style.animationDelay = (Math.random() * 3) + 's';
+                star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                
+                starfield.appendChild(star);
+            }
+        }
+        createStarfield();
+
+        /* ----------------------------------------------------
+           2. 俄羅斯方塊邏輯 (Tetris Game Engine)
+        ---------------------------------------------------- */
+        const canvas = document.getElementById('tetris');
+        const context = canvas.getContext('2d');
+        const nextCanvas = document.getElementById('next');
+        const nextContext = nextCanvas.getContext('2d');
+
+        // 放大繪製比例 (240x400 對應 10x20 的格子，每格 24 像素)
+        const BLOCK_SIZE = 24;
+        context.scale(BLOCK_SIZE, BLOCK_SIZE);
+        nextContext.scale(20, 20); // 預覽畫布放大比例
+
+        // 經典 7 種俄羅斯方塊顏色 (鮮艷復古色系)
+        const COLORS = [
+            null,
+            '#00f0f0', // 1: I (青色)
+            '#0000f0', // 2: J (深藍)
+            '#f0a000', // 3: L (橘色)
+            '#f0f000', // 4: O (黃色)
+            '#00f000', // 5: S (綠色)
+            '#a000f0', // 6: T (紫色)
+            '#f00000'  // 7: Z (紅色)
+        ];
+
+        // 方塊形狀矩陣定義
+        function createPiece(type) {
+            switch(type) {
+                case 'I':
+                    return [
+                        [0, 1, 0, 0],
+                        [0, 1, 0, 0],
+                        [0, 1, 0, 0],
+                        [0, 1, 0, 0],
+                    ];
+                case 'J':
+                    return [
+                        [0, 2, 0],
+                        [0, 2, 0],
+                        [2, 2, 0],
+                    ];
+                case 'L':
+                    return [
+                        [0, 3, 0],
+                        [0, 3, 0],
+                        [0, 3, 3],
+                    ];
+                case 'O':
+                    return [
+                        [4, 4],
+                        [4, 4],
+                    ];
+                case 'S':
+                    return [
+                        [0, 5, 5],
+                        [5, 5, 0],
+                        [0, 0, 0],
+                    ];
+                case 'T':
+                    return [
+                        [0, 0, 0],
+                        [6, 6, 6],
+                        [0, 6, 0],
+                    ];
+                case 'Z':
+                    return [
+                        [7, 7, 0],
+                        [0, 7, 7],
+                        [0, 0, 0],
+                    ];
+            }
+        }
+
+        // 創建遊戲地圖矩陣 (10 欄 x 20 列)
+        function createMatrix(w, h) {
+            const matrix = [];
+            while (h--) {
+                matrix.push(new Array(w).fill(0));
+            }
+            return matrix;
+        }
+
+        // 遊戲狀態變數
+        const arena = createMatrix(10, 20); // 遊戲主地圖
+        const player = {
+            pos: {x: 0, y: 0},
+            matrix: null,
+            score: 0,
+            lines: 0,
+            level: 1
+        };
+        let nextPiece = null;
+        let dropCounter = 0;
+        let dropInterval = 1000; // 初始下落間隔 (毫秒)
+        let lastTime = 0;
+        let isPaused = false;
+        let isGameOver = false;
+
+        // 繪製單個像素方塊
+        function drawBlock(ctx, x, y, colorIndex) {
+            ctx.fillStyle = COLORS[colorIndex];
+            ctx.fillRect(x, y, 1, 1);
+
+            // 繪製像素凸起光影邊框效果
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(x, y, 1, 0.1);
+            ctx.fillRect(x, y, 0.1, 1);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(x, y + 0.9, 1, 0.1);
+            ctx.fillRect(x + 0.9, y, 0.1, 1);
+        }
+
+        // 繪製矩陣 (地圖或當前方塊)
+        function drawMatrix(matrix, offset, ctx) {
+            matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        drawBlock(ctx, x + offset.x, y + offset.y, value);
+                    }
+                });
+            });
+        }
+
+        // 繪製主畫面
+        function draw() {
+            // 清除背景
+            context.fillStyle = '#050510';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 繪製地圖上固定的方塊
+            drawMatrix(arena, {x: 0, y: 0}, context);
+
+            // 繪製玩家目前操作的方塊
+            if (player.matrix) {
+                drawMatrix(player.matrix, player.pos, context);
+            }
+        }
+
+        // 繪製下一個方塊預覽
+        function drawNext() {
+            nextContext.fillStyle = '#050510';
+            nextContext.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+
+            if (nextPiece) {
+                // 自動居中顯示
+                const offsetX = (4 - nextPiece[0].length) / 2;
+                const offsetY = (4 - nextPiece.length) / 2;
+                drawMatrix(nextPiece, {x: offsetX, y: offsetY}, nextContext);
+            }
+        }
+
+        // 將落地的方塊固定到 arena 地圖矩陣中
+        function merge(arena, player) {
+            player.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        arena[y + player.pos.y][x + player.pos.x] = value;
+                    }
+                });
+            });
+        }
+
+        // 碰撞偵測算法
+        function collide(arena, player) {
+            const [m, o] = [player.matrix, player.pos];
+            for (let y = 0; y < m.length; ++y) {
+                for (let x = 0; x < m[y].length; ++x) {
+                    if (m[y][x] !== 0 &&
+                       (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) {
+                        return true; // 發生碰撞
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 消除滿列與計分
+        function arenaSweep() {
+            let rowCount = 0;
+            outer: for (let y = arena.length - 1; y >= 0; --y) {
+                for (let x = 0; x < arena[y].length; ++x) {
+                    if (arena[y][x] === 0) {
+                        continue outer; // 這一列有空位，不處理
+                    }
+                }
+
+                // 移除滿列並在最上方補充空列
+                const row = arena.splice(y, 1)[0].fill(0);
+                arena.unshift(row);
+                ++y;
+                rowCount++;
+            }
+
+            if (rowCount > 0) {
+                // 計分規則：消除 1/2/3/4 行得分
+                const scoreTable = [0, 40, 100, 300, 1200];
+                player.score += scoreTable[rowCount] * player.level;
+                player.lines += rowCount;
+                
+                // 每消除 10 行提升一級
+                player.level = Math.floor(player.lines / 10) + 1;
+                // 隨等級加快速度
+                dropInterval = Math.max(100, 1000 - (player.level - 1) * 90);
+
+                updateUI();
+            }
+        }
+
+        // 生成新方塊
+        function playerReset() {
+            const pieces = 'IJLOSTZ';
+            if (!nextPiece) {
+                nextPiece = createPiece(pieces[Math.floor(Math.random() * pieces.length)]);
+            }
+            player.matrix = nextPiece;
+            nextPiece = createPiece(pieces[Math.floor(Math.random() * pieces.length)]);
+            
+            // 放置於頂端中央
+            player.pos.y = 0;
+            player.pos.x = Math.floor(arena[0].length / 2) - Math.floor(player.matrix[0].length / 2);
+
+            drawNext();
+
+            // 若剛生成就碰撞，代表 Game Over
+            if (collide(arena, player)) {
+                isGameOver = true;
+                showOverlay('GAME OVER');
+            }
+        }
+
+        // 方塊旋轉邏輯（含牆壁踢回/Wall Kick）
+        function playerRotate(dir) {
+            const pos = player.pos.x;
+            let offset = 1;
+            rotate(player.matrix, dir);
+
+            // 若旋轉後穿牆，自動拉回
+            while (collide(arena, player)) {
+                player.pos.x += offset;
+                offset = -(offset + (offset > 0 ? 1 : -1));
+                if (offset > player.matrix[0].length) {
+                    rotate(player.matrix, -dir); // 無法踢牆則還原
+                    player.pos.x = pos;
+                    return;
+                }
+            }
+        }
+
+        // 矩陣旋轉演算法
+        function rotate(matrix, dir) {
+            for (let y = 0; y < matrix.length; ++y) {
+                for (let x = 0; x < y; ++x) {
+                    [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+                }
+            }
+            if (dir > 0) {
+                matrix.forEach(row => row.reverse());
+            } else {
+                matrix.reverse();
+            }
+        }
+
+        // 方塊下落處理
+        function playerDrop() {
+            player.pos.y++;
+            if (collide(arena, player)) {
+                player.pos.y--; // 退回上一格
+                merge(arena, player); // 固定方塊
+                playerReset(); // 產生新方塊
+                arenaSweep(); // 檢查消行
+            }
+            dropCounter = 0;
+        }
+
+        // 硬下落 (直接落地)
+        function playerHardDrop() {
+            while (!collide(arena, player)) {
+                player.pos.y++;
+                player.score += 2; // 硬下落加分
+            }
+            player.pos.y--;
+            merge(arena, player);
+            playerReset();
+            arenaSweep();
+            updateUI();
+            dropCounter = 0;
+        }
+
+        // 左右移動
+        function playerMove(offset) {
+            player.pos.x += offset;
+            if (collide(arena, player)) {
+                player.pos.x -= offset;
+            }
+        }
+
+        // 更新介面數值
+        function updateUI() {
+            document.getElementById('score').innerText = player.score;
+            document.getElementById('level').innerText = player.level;
+            document.getElementById('lines').innerText = player.lines;
+        }
+
+        // 顯示覆蓋文字視窗 (Game Over / Pause)
+        function showOverlay(text) {
+            document.getElementById('overlay-text').innerText = text;
+            document.getElementById('overlay').classList.remove('hidden');
+        }
+
+        // 隱藏覆蓋視窗
+        function hideOverlay() {
+            document.getElementById('overlay').classList.add('hidden');
+        }
+
+        // 開啟/關閉暫停
+        function togglePause() {
+            if (isGameOver) return;
+            isPaused = !isPaused;
+            const pauseBtn = document.getElementById('pause-btn');
+            if (isPaused) {
+                pauseBtn.innerText = 'RESUME';
+                showOverlay('PAUSED');
+            } else {
+                pauseBtn.innerText = 'PAUSE';
+                hideOverlay();
+                update(performance.now());
+            }
+        }
+
+        // 重置並重新開始遊戲
+        function restartGame() {
+            arena.forEach(row => row.fill(0));
+            player.score = 0;
+            player.lines = 0;
+            player.level = 1;
+            dropInterval = 1000;
+            isGameOver = false;
+            isPaused = false;
+            document.getElementById('pause-btn').innerText = 'PAUSE';
+            updateUI();
+            hideOverlay();
+            nextPiece = null;
+            playerReset();
+            update(performance.now());
+        }
+
+        /* ----------------------------------------------------
+           3. 主遊戲循環 (Game Loop)
+        ---------------------------------------------------- */
+        function update(time = 0) {
+            if (isPaused || isGameOver) return;
+
+            const deltaTime = time - lastTime;
+            lastTime = time;
+
+            dropCounter += deltaTime;
+            if (dropCounter > dropInterval) {
+                playerDrop();
+            }
+
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        /* ----------------------------------------------------
+           4. 事件監聽 (Keyboard & Touch Controls)
+        ---------------------------------------------------- */
+        document.addEventListener('keydown', event => {
+            if (isGameOver) return;
+
+            // P 鍵暫停
+            if (event.keyCode === 80) {
+                togglePause();
+                return;
+            }
+
+            if (isPaused) return;
+
+            switch (event.keyCode) {
+                case 37: // 方向鍵 左
+                    playerMove(-1);
+                    break;
+                case 39: // 方向鍵 右
+                    playerMove(1);
+                    break;
+                case 40: // 方向鍵 下 (軟下落)
+                    playerDrop();
+                    player.score += 1;
+                    updateUI();
+                    break;
+                case 38: // 方向鍵 上 (旋轉)
+                    playerRotate(1);
+                    break;
+                case 32: // 空白鍵 (硬下落)
+                    playerHardDrop();
+                    break;
+            }
+            draw();
+        });
+
+        // 按鈕點擊綁定
+        document.getElementById('restart-btn').addEventListener('click', restartGame);
+        document.getElementById('pause-btn').addEventListener('click', togglePause);
+
+        // 手機/觸控面板按鈕綁定
+        document.getElementById('btn-left').addEventListener('click', () => { if (!isPaused && !isGameOver) { playerMove(-1); draw(); } });
+        document.getElementById('btn-right').addEventListener('click', () => { if (!isPaused && !isGameOver) { playerMove(1); draw(); } });
+        document.getElementById('btn-rotate').addEventListener('click', () => { if (!isPaused && !isGameOver) { playerRotate(1); draw(); } });
+        document.getElementById('btn-down').addEventListener('click', () => { if (!isPaused && !isGameOver) { playerDrop(); draw(); } });
+        document.getElementById('btn-drop').addEventListener('click', () => { if (!isPaused && !isGameOver) { playerHardDrop(); draw(); } });
+
+        /* ----------------------------------------------------
+           5. 啟動遊戲
+        ---------------------------------------------------- */
+        playerReset();
+        updateUI();
+        update();
+    </script>
+</body>
+</html>
